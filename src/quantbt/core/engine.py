@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from quantbt.broker.base import Broker
+from quantbt.broker.live import LiveBroker
 from quantbt.broker.simulated import SimulatedBroker
 from quantbt.data.base import DataFeed
 from quantbt.instrument.model import Instrument
@@ -38,14 +39,16 @@ class BacktestEngine:
 
         for instrument in self.instruments:
             for bar in self.data_feed.iter_bars(instrument, self.start, self.end):
-                # If simulated broker, set current bar for fill pricing
+                # Set current bar for fill pricing on both broker types
                 if isinstance(self.broker, SimulatedBroker):
+                    self.broker.set_current_bar(bar)
+                elif isinstance(self.broker, LiveBroker):
                     self.broker.set_current_bar(bar)
 
                 self.strategy.on_bar(bar)
 
                 # If live broker, poll for ZMQ responses
-                if hasattr(self.broker, "poll_responses"):
+                if isinstance(self.broker, LiveBroker):
                     self.broker.poll_responses()
 
         return self.strategy.portfolio

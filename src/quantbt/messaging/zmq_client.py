@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import json
-
 import zmq
 
-from quantbt.messaging.protocol import Message
+from quantbt.messaging import fix_messages_pb2 as fix
+from quantbt.messaging.protocol import serialize, deserialize
 
 
 class ZmqClient:
@@ -19,17 +18,17 @@ class ZmqClient:
         self._poller = zmq.Poller()
         self._poller.register(self._socket, zmq.POLLIN)
 
-    def send(self, message: Message) -> None:
-        payload = json.dumps(message.to_dict()).encode("utf-8")
+    def send(self, message: fix.FixMessage) -> None:
+        payload = serialize(message)
         self._socket.send_multipart([b"", payload])
 
-    def recv(self, timeout_ms: int = 100) -> dict | None:
+    def recv(self, timeout_ms: int = 100) -> fix.FixMessage | None:
         events = dict(self._poller.poll(timeout_ms))
         if self._socket in events:
             frames = self._socket.recv_multipart()
             # DEALER receives [empty delimiter, data]
             data = frames[-1]
-            return json.loads(data.decode("utf-8"))
+            return deserialize(data)
         return None
 
     def close(self) -> None:

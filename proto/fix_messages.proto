@@ -1,0 +1,189 @@
+syntax = "proto3";
+
+package fix;
+
+option java_package = "com.tradecore.fix";
+option optimize_for = SPEED;
+
+// ============================================================================
+// FIX 4.4 Enumerations
+// ============================================================================
+
+// Tag 54: Side
+enum Side {
+    SIDE_UNSPECIFIED = 0;
+    SIDE_BUY = 1;         // FIX: 1
+    SIDE_SELL = 2;        // FIX: 2
+    SIDE_SHORT_SELL = 5;  // FIX: 5
+}
+
+// Tag 40: OrdType
+enum OrdType {
+    ORD_TYPE_UNSPECIFIED = 0;
+    ORD_TYPE_MARKET = 1;  // FIX: 1
+    ORD_TYPE_LIMIT = 2;   // FIX: 2
+    ORD_TYPE_STOP = 3;    // FIX: 3
+}
+
+// Tag 59: TimeInForce
+enum TimeInForce {
+    TIF_UNSPECIFIED = 0;
+    TIF_DAY = 1;          // FIX: 0
+    TIF_GTC = 2;          // FIX: 1
+    TIF_IOC = 3;          // FIX: 3
+}
+
+// Tag 39: OrdStatus
+enum OrdStatus {
+    ORD_STATUS_UNSPECIFIED = 0;
+    ORD_STATUS_NEW = 1;              // FIX: 0
+    ORD_STATUS_PARTIALLY_FILLED = 2; // FIX: 1
+    ORD_STATUS_FILLED = 3;           // FIX: 2
+    ORD_STATUS_CANCELLED = 4;        // FIX: 4
+    ORD_STATUS_REJECTED = 8;         // FIX: 8
+}
+
+// Tag 150: ExecType
+enum ExecType {
+    EXEC_TYPE_UNSPECIFIED = 0;
+    EXEC_TYPE_NEW = 1;               // FIX: 0
+    EXEC_TYPE_PARTIAL_FILL = 2;      // FIX: 1
+    EXEC_TYPE_FILL = 3;              // FIX: 2
+    EXEC_TYPE_CANCELLED = 4;         // FIX: 4
+    EXEC_TYPE_REJECTED = 8;          // FIX: 8
+}
+
+// Tag 167: SecurityType
+enum SecurityType {
+    SECURITY_TYPE_UNSPECIFIED = 0;
+    SECURITY_TYPE_COMMON_STOCK = 1;  // FIX: CS
+    SECURITY_TYPE_FUTURE = 2;        // FIX: FUT
+    SECURITY_TYPE_OPTION = 3;        // FIX: OPT
+    SECURITY_TYPE_FX_SPOT = 4;       // FIX: FXSPOT
+}
+
+// ============================================================================
+// FIX 4.4 Component Blocks
+// ============================================================================
+
+// Instrument component (FIX component block)
+message Instrument {
+    string symbol = 1;                // Tag 55
+    SecurityType security_type = 2;   // Tag 167
+    string exchange = 3;              // Tag 207: SecurityExchange
+    string currency = 4;              // Tag 15
+
+    // Futures
+    string maturity_date = 5;         // Tag 541
+    double contract_multiplier = 6;   // Tag 231
+
+    // Options
+    string underlying_symbol = 7;     // Tag 311
+    double strike_price = 8;          // Tag 202
+    string put_or_call = 9;           // Tag 201: 0=Put, 1=Call
+    string maturity_month_year = 10;  // Tag 200
+
+    // FX
+    double min_price_increment = 11;  // Tag 969 (pip size)
+}
+
+// ============================================================================
+// FIX 4.4 Messages
+// ============================================================================
+
+// Wrapper envelope for all messages over ZMQ
+message FixMessage {
+    string sender_comp_id = 1;        // Tag 49
+    string target_comp_id = 2;        // Tag 56
+    string msg_seq_num = 3;           // Tag 34
+    string sending_time = 4;          // Tag 52 (UTC timestamp)
+
+    oneof body {
+        NewOrderSingle new_order_single = 10;
+        ExecutionReport execution_report = 11;
+        OrderCancelRequest order_cancel_request = 12;
+        Heartbeat heartbeat = 13;
+        PositionRequest position_request = 14;
+        PositionReport position_report = 15;
+        Reject reject = 16;
+    }
+}
+
+// MsgType = D (tag 35)
+message NewOrderSingle {
+    string cl_ord_id = 1;            // Tag 11
+    Instrument instrument = 2;
+    Side side = 3;                   // Tag 54
+    double order_qty = 4;            // Tag 38
+    OrdType ord_type = 5;            // Tag 40
+    double price = 6;                // Tag 44 (limit price)
+    TimeInForce time_in_force = 7;   // Tag 59
+    string account = 8;             // Tag 1
+    string text = 9;                // Tag 58 (strategy_id / free text)
+    double market_price = 10;       // Non-FIX: price hint for backtesting
+    string transact_time = 11;      // Tag 60
+}
+
+// MsgType = 8 (tag 35)
+message ExecutionReport {
+    string order_id = 1;             // Tag 37
+    string cl_ord_id = 2;           // Tag 11
+    string exec_id = 3;             // Tag 17
+    ExecType exec_type = 4;         // Tag 150
+    OrdStatus ord_status = 5;       // Tag 39
+    Instrument instrument = 6;
+    Side side = 7;                  // Tag 54
+    double order_qty = 8;           // Tag 38
+    double last_px = 9;             // Tag 31 (fill price)
+    double last_qty = 10;           // Tag 32 (fill quantity)
+    double leaves_qty = 11;         // Tag 151 (remaining quantity)
+    double cum_qty = 12;            // Tag 14 (cumulative filled quantity)
+    double avg_px = 13;             // Tag 6 (average fill price)
+    double commission = 14;         // Tag 12
+    string text = 15;               // Tag 58 (reject reason / info)
+    string transact_time = 16;      // Tag 60
+}
+
+// MsgType = F (tag 35)
+message OrderCancelRequest {
+    string cl_ord_id = 1;           // Tag 11 (new ClOrdID)
+    string orig_cl_ord_id = 2;      // Tag 41 (original ClOrdID to cancel)
+    Instrument instrument = 3;
+    Side side = 4;                  // Tag 54
+    double order_qty = 5;           // Tag 38
+    string transact_time = 6;       // Tag 60
+}
+
+// MsgType = 0 (tag 35)
+message Heartbeat {
+    string test_req_id = 1;         // Tag 112
+}
+
+// Position Request (based on FIX 5.0 RequestForPositions, MsgType = AN)
+message PositionRequest {
+    string pos_req_id = 1;          // Tag 710
+    string account = 2;             // Tag 1
+}
+
+// MsgType = AP (tag 35)
+message PositionReport {
+    string pos_req_id = 1;          // Tag 710 (ref to request)
+    string pos_rpt_id = 2;          // Tag 721
+    repeated PositionEntry positions = 3;
+}
+
+message PositionEntry {
+    Instrument instrument = 1;
+    double long_qty = 2;            // Tag 704
+    double short_qty = 3;           // Tag 705
+    double avg_price = 4;
+    double realized_pnl = 5;
+    double unrealized_pnl = 6;
+}
+
+// MsgType = 3 (Session-level Reject)
+message Reject {
+    string ref_msg_seq_num = 1;     // Tag 45
+    string text = 2;                // Tag 58
+    int32 session_reject_reason = 3; // Tag 373
+}

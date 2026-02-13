@@ -9,6 +9,7 @@ dependencies = [
     "pyzmq>=25.1",
     "yfinance>=0.2.31",
     "pydantic>=2.5",
+    "protobuf>=5.27",
 ]
 
 [project.optional-dependencies]
