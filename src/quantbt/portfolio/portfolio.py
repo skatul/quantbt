@@ -88,6 +88,14 @@ class Portfolio:
     def get_position(self, symbol: str) -> Position | None:
         return self.positions.get(symbol)
 
+    def mark_to_market(self, market_prices: dict[str, float]) -> float:
+        """Compute MTM equity using current market prices instead of avg_price."""
+        positions_value = 0.0
+        for symbol, pos in self.positions.items():
+            price = market_prices.get(symbol, pos.avg_price)
+            positions_value += pos.quantity * price
+        return self.cash + positions_value
+
     @property
     def total_equity(self) -> float:
         positions_value = sum(

@@ -1,0 +1,31 @@
+# quantbt configuration
+
+[broker]
+# "simulated" for local backtest, "live" for tradecore via ZMQ
+mode = "simulated"
+# Commission rate as a fraction (0.001 = 0.1%)
+commission_rate = 0.001
+# Slippage in basis points (0 = no slippage)
+slippage_bps = 0.0
+# ZMQ address for live broker mode
+zmq_address = "tcp://127.0.0.1:5555"
+
+[engine]
+# Starting cash for the portfolio
+initial_cash = 100000.0
+# Date range for backtest (YYYY-MM-DD format, empty = use script defaults)
+start_date = ""
+end_date = ""
+
+[logging]
+# Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+level = "INFO"
+
+[strategy]
+# Strategy name (used by scripts to select strategy)
+name = "sma_crossover"
+
+[strategy.params]
+fast_period = 10
+slow_period = 30
+trade_quantity = 100

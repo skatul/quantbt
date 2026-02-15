@@ -1,5 +1,6 @@
 from quantbt.messaging import fix_messages_pb2 as fix
 from quantbt.messaging.protocol import (
+    cancel_order_message,
     deserialize,
     heartbeat_message,
     new_order_message,
@@ -78,3 +79,20 @@ def test_position_query_message():
     assert msg.HasField("position_request")
     assert msg.position_request.account == "sma_v1"
     assert msg.position_request.pos_req_id != ""
+
+
+def test_cancel_order_message():
+    msg = cancel_order_message(
+        orig_cl_ord_id="order-to-cancel",
+        instrument_dict={"symbol": "AAPL", "asset_class": "equity"},
+        side="buy",
+        quantity=100.0,
+    )
+    assert msg.HasField("order_cancel_request")
+    cancel = msg.order_cancel_request
+    assert cancel.orig_cl_ord_id == "order-to-cancel"
+    assert cancel.instrument.symbol == "AAPL"
+    assert cancel.side == fix.SIDE_BUY
+    assert cancel.order_qty == 100.0
+    assert cancel.cl_ord_id != ""
+    assert msg.sender_comp_id == "QUANTBT"

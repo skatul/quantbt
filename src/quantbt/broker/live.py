@@ -3,7 +3,7 @@ from __future__ import annotations
 from quantbt.broker.base import Broker
 from quantbt.data.bar import Bar
 from quantbt.messaging import fix_messages_pb2 as fix
-from quantbt.messaging.protocol import new_order_message
+from quantbt.messaging.protocol import cancel_order_message, new_order_message
 from quantbt.messaging.zmq_client import ZmqClient
 from quantbt.orders.model import Fill, Order, OrderStatus
 
@@ -55,8 +55,22 @@ class LiveBroker(Broker):
                 if o.status in (OrderStatus.PENDING, OrderStatus.ACCEPTED)]
 
     def cancel_order(self, cl_ord_id: str) -> bool:
-        # TODO: send cancel message to tradecore
-        return False
+        order = self._pending_orders.get(cl_ord_id)
+        if order is None:
+            return False
+        if order.status not in (OrderStatus.PENDING, OrderStatus.ACCEPTED,
+                                OrderStatus.PARTIALLY_FILLED):
+            return False
+
+        instrument_dict = {"symbol": order.symbol, "asset_class": "equity"}
+        msg = cancel_order_message(
+            orig_cl_ord_id=cl_ord_id,
+            instrument_dict=instrument_dict,
+            side=order.side.value,
+            quantity=order.quantity,
+        )
+        self._client.send(msg)
+        return True
 
     def close(self) -> None:
         self._client.close()
@@ -92,6 +106,10 @@ class LiveBroker(Broker):
                 self._notify_fill(order, fill)
                 if order.status == OrderStatus.FILLED:
                     del self._pending_orders[cl_ord_id]
+
+            elif er.exec_type == fix.EXEC_TYPE_CANCELLED:
+                order.status = OrderStatus.CANCELLED
+                del self._pending_orders[cl_ord_id]
 
         elif msg.HasField("reject"):
             # Try to find order by ref_msg_seq_num - for now, reject all pending

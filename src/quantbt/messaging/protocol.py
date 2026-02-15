@@ -70,6 +70,32 @@ def new_order_message(
     return msg
 
 
+def cancel_order_message(
+    orig_cl_ord_id: str,
+    instrument_dict: dict,
+    side: str,
+    quantity: float,
+) -> fix.FixMessage:
+    msg = fix.FixMessage()
+    msg.sender_comp_id = "QUANTBT"
+    msg.target_comp_id = "TRADECORE"
+    msg.msg_seq_num = generate_uuid()
+    msg.sending_time = current_timestamp()
+
+    cancel = msg.order_cancel_request
+    cancel.cl_ord_id = generate_uuid()
+    cancel.orig_cl_ord_id = orig_cl_ord_id
+    cancel.instrument.symbol = instrument_dict.get("symbol", "")
+    cancel.instrument.security_type = _ASSET_CLASS_MAP.get(
+        instrument_dict.get("asset_class", "equity"), fix.SECURITY_TYPE_COMMON_STOCK
+    )
+    cancel.side = _SIDE_MAP.get(side, fix.SIDE_BUY)
+    cancel.order_qty = quantity
+    cancel.transact_time = current_timestamp()
+
+    return msg
+
+
 def position_query_message(strategy_id: str = "") -> fix.FixMessage:
     msg = fix.FixMessage()
     msg.sender_comp_id = "QUANTBT"

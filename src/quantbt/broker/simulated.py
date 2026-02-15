@@ -10,9 +10,10 @@ from quantbt.orders.model import Fill, Order, OrderStatus, OrderType
 class SimulatedBroker(Broker):
     """Fills market orders immediately at the current bar's close price."""
 
-    def __init__(self, commission_rate: float = 0.001) -> None:
+    def __init__(self, commission_rate: float = 0.001, slippage_bps: float = 0.0) -> None:
         super().__init__()
         self.commission_rate = commission_rate
+        self.slippage_bps = slippage_bps
         self._pending_orders: list[Order] = []
         self._current_bar: Bar | None = None
         self._order_seq = 0
@@ -61,6 +62,11 @@ class SimulatedBroker(Broker):
         self._pending_orders = remaining
 
     def _fill_order(self, order: Order, price: float) -> None:
+        if self.slippage_bps != 0.0:
+            if order.side.value == "buy":
+                price = price * (1.0 + self.slippage_bps / 10000.0)
+            else:
+                price = price * (1.0 - self.slippage_bps / 10000.0)
         commission = price * order.quantity * self.commission_rate
         fill = Fill(
             fill_id=str(uuid4())[:8],
