@@ -17,8 +17,10 @@ class EquityPoint:
 class PerformanceTracker:
     """Records equity curve and computes performance metrics."""
 
-    def __init__(self, initial_cash: float = 100_000.0) -> None:
+    def __init__(self, initial_cash: float = 100_000.0,
+                 periods_per_year: float = 252.0) -> None:
         self.initial_cash = initial_cash
+        self.periods_per_year = periods_per_year
         self._equity_curve: list[EquityPoint] = []
         self._peak_equity: float = initial_cash
         self._returns: list[float] = []
@@ -64,7 +66,9 @@ class PerformanceTracker:
         return max(p.drawdown for p in self._equity_curve)
 
     def sharpe_ratio(self, risk_free_rate: float = 0.0,
-                     periods_per_year: float = 252.0) -> float:
+                     periods_per_year: float | None = None) -> float:
+        if periods_per_year is None:
+            periods_per_year = self.periods_per_year
         if len(self._returns) < 2:
             return 0.0
 
@@ -80,7 +84,9 @@ class PerformanceTracker:
         return (excess / std) * math.sqrt(periods_per_year)
 
     def sortino_ratio(self, risk_free_rate: float = 0.0,
-                      periods_per_year: float = 252.0) -> float:
+                      periods_per_year: float | None = None) -> float:
+        if periods_per_year is None:
+            periods_per_year = self.periods_per_year
         if len(self._returns) < 2:
             return 0.0
 

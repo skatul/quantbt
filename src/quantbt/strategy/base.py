@@ -23,6 +23,22 @@ class Strategy(ABC):
         """Called for each new bar. Generate signals and submit orders here."""
         ...
 
+    def on_bars(self, bars: dict[str, Bar]) -> None:
+        """Called with all bars at a given timestamp in synchronized mode.
+
+        Default implementation dispatches each bar to ``on_bar()``.
+        """
+        for bar in bars.values():
+            self.on_bar(bar)
+
+    def on_bars(self, bars: dict[str, Bar]) -> None:
+        """Called with {symbol: Bar} for synchronized multi-instrument mode.
+
+        Default implementation calls on_bar() for each bar (backward compatible).
+        """
+        for bar in bars.values():
+            self.on_bar(bar)
+
     def on_fill(self, order: Order, fill: Fill) -> None:
         """Called when an order is filled. Override for custom logic."""
 

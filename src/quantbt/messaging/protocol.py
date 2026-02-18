@@ -24,6 +24,8 @@ _ASSET_CLASS_MAP = {
     "future": fix.SECURITY_TYPE_FUTURE,
     "option": fix.SECURITY_TYPE_OPTION,
     "fx": fix.SECURITY_TYPE_FX_SPOT,
+    "crypto": fix.SECURITY_TYPE_COMMON_STOCK,
+    "etf": fix.SECURITY_TYPE_COMMON_STOCK,
 }
 
 

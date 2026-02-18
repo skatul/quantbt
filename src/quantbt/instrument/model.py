@@ -10,6 +10,8 @@ class AssetClass(str, Enum):
     FUTURE = "future"
     OPTION = "option"
     FX = "fx"
+    CRYPTO = "crypto"
+    ETF = "etf"
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,10 +32,13 @@ class Instrument:
     option_type: str | None = None  # "call" or "put"
     expiration: date | None = None
 
-    # FX
+    # FX / Crypto
     base_currency: str | None = None
     quote_currency: str | None = None
     pip_size: float | None = None
+
+    # Trading hours: "24/7" for crypto, "regular" for equities, etc.
+    trading_hours: str = "regular"
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -78,3 +83,14 @@ def fx_pair(base: str, quote: str, pip_size: float = 0.0001) -> Instrument:
     return Instrument(symbol=f"{base}{quote}", asset_class=AssetClass.FX,
                       base_currency=base, quote_currency=quote,
                       pip_size=pip_size, currency=quote)
+
+
+def crypto(symbol: str, exchange: str = "", currency: str = "USD") -> Instrument:
+    return Instrument(symbol=symbol, asset_class=AssetClass.CRYPTO,
+                      exchange=exchange, currency=currency,
+                      trading_hours="24/7")
+
+
+def etf(symbol: str, exchange: str = "", currency: str = "USD") -> Instrument:
+    return Instrument(symbol=symbol, asset_class=AssetClass.ETF,
+                      exchange=exchange, currency=currency)

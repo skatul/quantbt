@@ -16,10 +16,12 @@ class SimulatedBroker(Broker):
         self.slippage_bps = slippage_bps
         self._pending_orders: list[Order] = []
         self._current_bar: Bar | None = None
+        self._current_bars: dict[str, Bar] = {}
         self._order_seq = 0
 
     def set_current_bar(self, bar: Bar) -> None:
         self._current_bar = bar
+        self._current_bars[bar.symbol] = bar
         self._process_pending_orders()
 
     def submit_order(self, order: Order) -> None:
