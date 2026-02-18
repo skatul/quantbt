@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from collections import deque
-
 import pandas as pd
 import numpy as np
 
 from quantbt.broker.base import Broker
 from quantbt.data.bar import Bar
+from quantbt.indicators.moving_averages import SMA
 from quantbt.portfolio.portfolio import Portfolio
 from quantbt.strategy.base import Strategy
 from quantbt.strategy.vectorized import VectorizedStrategy
@@ -27,23 +26,21 @@ class SMACrossover(Strategy):
         self.fast_period = fast_period
         self.slow_period = slow_period
         self.trade_quantity = trade_quantity
-        self._prices: deque[float] = deque(maxlen=slow_period)
+        self._fast_sma = SMA(fast_period)
+        self._slow_sma = SMA(slow_period)
         self._in_position = False
 
     def on_bar(self, bar: Bar) -> None:
-        self._prices.append(bar.close)
+        fast_val = self._fast_sma.update(bar.close)
+        slow_val = self._slow_sma.update(bar.close)
 
-        if len(self._prices) < self.slow_period:
+        if fast_val is None or slow_val is None:
             return
 
-        prices = list(self._prices)
-        fast_sma = sum(prices[-self.fast_period:]) / self.fast_period
-        slow_sma = sum(prices) / self.slow_period
-
-        if fast_sma > slow_sma and not self._in_position:
+        if fast_val > slow_val and not self._in_position:
             self.submit_order(bar.symbol, "buy", self.trade_quantity)
             self._in_position = True
-        elif fast_sma < slow_sma and self._in_position:
+        elif fast_val < slow_val and self._in_position:
             self.submit_order(bar.symbol, "sell", self.trade_quantity)
             self._in_position = False
 

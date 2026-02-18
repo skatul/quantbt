@@ -21,6 +21,9 @@ dev = [
 alphavantage = [
     "alpha-vantage>=2.3",
 ]
+crypto = [
+    "ccxt>=4.0",
+]
 
 [build-system]
 requires = ["hatchling"]
